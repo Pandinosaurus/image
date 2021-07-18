@@ -715,6 +715,20 @@ impl DynamicImage {
         }
     }
 
+    /// Returns the width of the underlying image
+    pub fn width(&self) -> u32 {
+        dynamic_map!(*self, ref p -> {
+            p.width()
+        })
+    }
+
+    /// Returns the height of the underlying image
+    pub fn height(&self) -> u32 {
+        dynamic_map!(*self, ref p -> {
+            p.height()
+        })
+    }
+
     /// Return a grayscale version of this image.
     pub fn grayscale(&self) -> DynamicImage {
         match *self {
@@ -882,7 +896,11 @@ impl DynamicImage {
         dynamic_map!(*self, ref p => imageops::rotate270(p))
     }
 
-    /// Encode this image and write it to ```w```
+    /// Encode this image and write it to ```w```.
+    ///
+    /// Assumes the writer is buffered. In most cases,
+    /// you should wrap your writer in a `BufWriter` for best performance.
+    ///
     /// **Note**: TIFF encoding uses buffered writing,
     /// which can lead to unexpected use of resources
     pub fn write_to<W: Write, F: Into<ImageOutputFormat>>(
@@ -980,6 +998,66 @@ impl DynamicImage {
         dynamic_map!(*self, ref p -> {
             p.save_with_format(path, format)
         })
+    }
+}
+
+impl From<GrayImage> for DynamicImage {
+    fn from(image: GrayImage) -> Self {
+        DynamicImage::ImageLuma8(image)
+    }
+}
+
+impl From<GrayAlphaImage> for DynamicImage {
+    fn from(image: GrayAlphaImage) -> Self {
+        DynamicImage::ImageLumaA8(image)
+    }
+}
+
+impl From<RgbImage> for DynamicImage {
+    fn from(image: RgbImage) -> Self {
+        DynamicImage::ImageRgb8(image)
+    }
+}
+
+impl From<RgbaImage> for DynamicImage {
+    fn from(image: RgbaImage) -> Self {
+        DynamicImage::ImageRgba8(image)
+    }
+}
+
+impl From<BgrImage> for DynamicImage {
+    fn from(image: BgrImage) -> Self {
+        DynamicImage::ImageBgr8(image)
+    }
+}
+
+impl From<BgraImage> for DynamicImage {
+    fn from(image: BgraImage) -> Self {
+        DynamicImage::ImageBgra8(image)
+    }
+}
+
+impl From<Gray16Image> for DynamicImage {
+    fn from(image: Gray16Image) -> Self {
+        DynamicImage::ImageLuma16(image)
+    }
+}
+
+impl From<GrayAlpha16Image> for DynamicImage {
+    fn from(image: GrayAlpha16Image) -> Self {
+        DynamicImage::ImageLumaA16(image)
+    }
+}
+
+impl From<Rgb16Image> for DynamicImage {
+    fn from(image: Rgb16Image) -> Self {
+        DynamicImage::ImageRgb16(image)
+    }
+}
+
+impl From<Rgba16Image> for DynamicImage {
+    fn from(image: Rgba16Image) -> Self {
+        DynamicImage::ImageRgba16(image)
     }
 }
 
@@ -1199,9 +1277,9 @@ where
 ///
 /// The image format is derived from the file extension. The buffer is assumed to have
 /// the correct format according to the specified color type.
-
+///
 /// This will lead to corrupted files if the buffer contains malformed data. Currently only
-/// jpeg, png, ico, pnm, bmp and tiff files are supported.
+/// jpeg, png, ico, pnm, bmp, exr and tiff files are supported.
 pub fn save_buffer<P>(
     path: P,
     buf: &[u8],
@@ -1222,7 +1300,7 @@ where
 /// The buffer is assumed to have the correct format according
 /// to the specified color type.
 /// This will lead to corrupted files if the buffer contains
-/// malformed data. Currently only jpeg, png, ico, bmp and
+/// malformed data. Currently only jpeg, png, ico, bmp, exr and
 /// tiff files are supported.
 pub fn save_buffer_with_format<P>(
     path: P,
@@ -1249,6 +1327,9 @@ where
 /// See [`ImageOutputFormat`](../enum.ImageOutputFormat.html) for
 /// supported types.
 ///
+/// Assumes the writer is buffered. In most cases,
+/// you should wrap your writer in a `BufWriter` for best performance.
+///
 /// **Note**: TIFF encoding uses buffered writing,
 /// which can lead to unexpected use of resources
 pub fn write_buffer_with_format<W, F>(
@@ -1260,7 +1341,7 @@ pub fn write_buffer_with_format<W, F>(
     format: F,
 ) -> ImageResult<()>
 where
-    W: std::io::Write,
+    W: Write,
     F: Into<ImageOutputFormat>,
 {
     // thin wrapper function to strip generics
